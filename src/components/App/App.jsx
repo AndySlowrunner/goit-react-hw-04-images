@@ -1,86 +1,77 @@
-import { Component } from "react"
 import { LoadMoreButton, StyledApp } from "./StyledApp";
 import { Searchbar } from "../Searchbar/Searchbar";
 import { ImageGallery } from "components/ImageGallery/ImageGallery";
 import { ImageGalleryItem } from "components/ImageGalleryItem/ImageGalleryItem";
 import { getImagesWithQuery } from "components/Service/Api";
 import { Dna } from "react-loader-spinner";
+import { useEffect, useState } from "react";
 
-export class App extends Component {
-    state = {
-        query: "",
-        page: 1,
-        images: [],
-        isLoading: false,
-        error: null,
-        hasMoreImages: false,
-    };
+export const App = () => {
+    const [query, setQuery] = useState("");
+    const [page, setPage] = useState(1);
+    const [images, setImages] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [hasMoreImages, setHasMoreImages] = useState(false);
 
-    changeQuery = (newQuery) => {
-        this.setState({
-            query: newQuery,
-            page: 1,
-            images: [],
-        });
-    };
-
-    handleLoadMore = () => {
-        this.setState(prevState => ({page: prevState.page + 1}))
-     };
-
-    async componentDidUpdate(prevProps, prevState) {
-
-        if (
-            prevState.query !== this.state.query ||
-            prevState.page !== this.state.page
-        ) {
+    useEffect(() => {
+        async function getImages() {
             try {
-                this.setState({ isLoading: true });
-                const images = await getImagesWithQuery(
-                    this.state.query,
-                    this.state.page
-                );
-                this.setState(prevState => ({
-                    images: [...prevState.images, ...images],
-                    isLoading: false,
-                    hasMoreImages: images.length > 0,
-                }));
+                setIsLoading(true);
+                const imagesWithQuery = await getImagesWithQuery(query, page);
+                setImages(prevState => [...prevState, ...imagesWithQuery]);
+                setIsLoading(false);
+                setHasMoreImages(imagesWithQuery.length > 0);
             } catch (error) {
-                this.setState({ error, isLoading: false });
+                setError(error);
+                setIsLoading(false);
             } finally {
-                this.setState({ isLoading: false });
+                setIsLoading(false);
             }
-        }
-    }
 
-    render() {
-        return (
-            <StyledApp>
-                <Searchbar
-                    onSubmit={(evt) => {
-                        evt.preventDefault();
-                        this.changeQuery(evt.target.elements.query.value);
-                        evt.target.reset();
-                    }}
+        };
+        if (query !== "") {
+            getImages();
+        };
+    }, [query, page, error]);
+    
+    const changeQuery = (newQuery) => {
+        setQuery(newQuery);
+        setPage(1);
+        setImages([]);
+        setError(null);
+    };
+
+    const handleLoadMore = () => {
+        setPage(prevState => prevState + 1);
+    };
+
+    return (
+        <StyledApp>
+            <Searchbar
+                onSubmit={(evt) => {
+                    evt.preventDefault();
+                    changeQuery(evt.target.elements.query.value);
+                    evt.target.reset();
+                }}
+            />
+            {isLoading &&
+                <Dna
+                    visible={true}
+                    height="80"
+                    width="80"
+                    ariaLabel="dna-loading"
+                    wrapperStyle={{}}
+                    wrapperClass="dna-wrapper"
                 />
-                {this.state.isLoading &&
-                    <Dna
-                        visible={true}
-                        height="80"
-                        width="80"
-                        ariaLabel="dna-loading"
-                        wrapperStyle={{}}
-                        wrapperClass="dna-wrapper"
-                    />
-                }
-                <ImageGallery gallery={this.state.images} Children={ImageGalleryItem} />
-                <LoadMoreButton
-                    onClick={this.handleLoadMore}
-                    style={{ display: this.state.hasMoreImages ? "block" : "none" }}
-                >
-                    Load more
-                </LoadMoreButton>
-            </StyledApp>
-        );
-    }
+            }
+            <ImageGallery gallery={images} Children={ImageGalleryItem} />
+            <LoadMoreButton
+                onClick={handleLoadMore}
+                style={{ display: hasMoreImages ? "block" : "none" }}
+            >
+                Load more
+            </LoadMoreButton>
+        </StyledApp>
+    );
 }

@@ -1,7 +1,7 @@
-import { Component } from "react";
 import { StyledImage, StyledItem } from "./StyledGalleryItem";
 import Modal from 'react-modal';
 import { nanoid } from 'nanoid';
+import { useState } from "react";
 
 const customStyles = {
     overlay: {
@@ -27,34 +27,37 @@ const customStyles = {
 
 Modal.setAppElement('#root');
 
-export class ImageGalleryItem extends Component {
-    state = {
-        isModalOpen: false,
-        selectedImageId: null,
-    }
+export const ImageGalleryItem = ({ items }) => {
+    const [isModalOpen, setModalOpen] = useState(false);
+    const [selectedImageId, setSelectedImageId] = useState(null);
 
-    OpenModal = (imageId) => this.setState({ isModalOpen: true, selectedImageId: imageId });
-    ClouseModal = () => this.setState({ isModalOpen: false, selectedImageId: null });
+    const OpenModal = (imageId) => {
+        setSelectedImageId(imageId);
+        setModalOpen(true);
+    };
+
+    const ClouseModal = () => {
+        setModalOpen(false);
+        setSelectedImageId(null);
+    };
     
-    render() {
-        const { items } = this.props;
-        return (
+    return (
         items.map(item => (
             <div key={nanoid()}>
                 <StyledItem key={item.id}>
-                    <StyledImage src={item.webformatURL} alt={item.tags}  onClick={() => this.OpenModal(item.id)}/>
+                    <StyledImage src={item.webformatURL} alt={item.tags} onClick={() => OpenModal(item.id)} />
                     <Modal
-                        isOpen={this.state.isModalOpen}
-                        onRequestClose={this.ClouseModal}
+                        isOpen={isModalOpen}
+                        onRequestClose={ClouseModal}
                         style={customStyles}
                         contentLabel="Modal"
                     >
-                        {items.map(item => item.id === this.state.selectedImageId && (
+                        {items.map(item => item.id === selectedImageId && (
                             <img key={item.id} src={item.largeImageURL} alt={item.tags} />
                         ))}
                     </Modal>
                 </StyledItem>
             </div>
         ))
-    )};
-};
+    );
+}
